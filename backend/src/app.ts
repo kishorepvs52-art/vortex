@@ -54,6 +54,23 @@ export function createApp() {
   app.use(cookieParser());
   if (!env.isTest) app.use(morgan(env.isProd ? 'combined' : 'dev', { skip: (req) => req.path === `${API_PREFIX}/health` }));
 
+  // ── Friendly root — this process is the JSON API only; the actual
+  // website is the separate frontend dev server (Vite, port 5173).
+  // Without this, hitting :4000/ directly returns a bare 404 that looks
+  // like a broken deployment rather than "wrong port".
+  app.get('/', (_req, res) => {
+    res.status(200).json({
+      success: true,
+      data: {
+        service: 'vortex-api',
+        message: 'This is the VORTEX backend API only. The website is served separately by the frontend dev server.',
+        frontendHint: 'Open the frontend preview (Vite, default port 5173) to use the actual VORTEX website.',
+        health: `${API_PREFIX}/health`,
+        docs: '/docs/API.md (in the repository)',
+      },
+    });
+  });
+
   // ── Health ──
   app.get(`${API_PREFIX}/health`, async (_req, res) => {
     let db = false;
