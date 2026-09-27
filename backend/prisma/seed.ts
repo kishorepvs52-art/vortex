@@ -4,13 +4,12 @@
 // are generated & stored through the REAL storage pipeline (sharp).
 // Idempotent: safe to re-run (npm run seed).
 // ═══════════════════════════════════════════════════════════════
-import { PrismaClient, type PathogenType, type Severity } from '@prisma/client';
+import type { PathogenType, Severity } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
 import { env } from '../src/config/env.js';
 import { storage } from '../src/storage/local.provider.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../src/lib/prisma.js';
 
 // ───────────────────────── helpers ─────────────────────────
 

@@ -4,8 +4,13 @@
 // expert reviews, guidance, notifications, tokens, activity, settings
 // ═══════════════════════════════════════════════════════════════
 
+// Rust-free "client" engine (GA since Prisma 6.16): the query engine runs
+// as pure TypeScript/WASM inside the generated client, so `prisma generate`
+// never needs to download a per-platform native binary. Requires a driver
+// adapter (see src/lib/prisma.ts) to actually talk to PostgreSQL.
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "client"
 }
 
 datasource db {
