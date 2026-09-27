@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════ VORTEX design system ═══════════════════════ */
+
+@layer base {
+  * {
+    @apply border-white/10;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-void text-cream font-body antialiased;
+    background-image:
+      radial-gradient(ellipse 90% 60% at 50% -10%, rgba(11, 61, 46, 0.35), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 10%, rgba(14, 116, 144, 0.12), transparent 60%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    @apply bg-neon/30 text-white;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+  /* Neon scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #04120a; }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #0a5c30, #0b3d2e);
+    border-radius: 8px;
+    border: 2px solid #04120a;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #1fd46b; }
+}
+
+@layer components {
+  /* ── Glassmorphism panels ── */
+  .glass {
+    @apply bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .glass-strong {
+    @apply bg-[#06140c]/80 backdrop-blur-2xl border border-neon/15 rounded-2xl;
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.6),
+      0 0 24px rgba(57, 255, 136, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+  .glass-card {
+    @apply glass transition-all duration-300 ease-expo hover:border-neon/30 hover:-translate-y-0.5;
+  }
+  .glass-card:hover {
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.55),
+      0 0 20px rgba(57, 255, 136, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* ── Neon helpers ── */
+  .neon-border {
+    @apply border border-neon/40;
+    box-shadow: 0 0 12px rgba(57, 255, 136, 0.25), inset 0 0 12px rgba(57, 255, 136, 0.06);
+  }
+  .text-glow {
+    text-shadow: 0 0 18px rgba(57, 255, 136, 0.55), 0 0 60px rgba(57, 255, 136, 0.2);
+  }
+  .text-glow-cyan {
+    text-shadow: 0 0 18px rgba(34, 211, 238, 0.55), 0 0 60px rgba(34, 211, 238, 0.2);
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-neon via-leaf to-cyan bg-clip-text text-transparent;
+  }
+
+  /* ── Inputs ── */
+  .input-glass {
+    @apply w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-cream
+      placeholder:text-muted/50 outline-none transition-all duration-200
+      focus:border-neon/50 focus:shadow-[0_0_0_3px_rgba(57,255,136,0.12)] focus:bg-white/[0.06];
+  }
+  .input-glass:disabled { @apply opacity-50 cursor-not-allowed; }
+  select.input-glass option { background: #06140c; color: #e8f5ec; }
+
+  /* ── Holographic grid backdrop (3D OFF-mode identity) ── */
+  .holo-grid {
+    background-image:
+      linear-gradient(rgba(57, 255, 136, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57, 255, 136, 0.05) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
+  }
+
+  /* ── Shimmer skeleton ── */
+  .skeleton {
+    @apply rounded-lg;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(57,255,136,0.10) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+}
+
+@layer utilities {
+  .perspective-1000 { perspective: 1000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+}
+
+/* Reduced motion: honour the OS preference globally */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

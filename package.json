@@ -1,0 +1,29 @@
+{
+  "name": "vortex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VORTEX — AI-Powered Crop Disease Guidance System. Premium 3D full-stack application.",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "db:setup": "bash scripts/db-setup.sh",
+    "dev": "concurrently -n api,web -c green,cyan \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend",
+    "seed": "npm run seed --workspace backend",
+    "prisma:generate": "npm run prisma:generate --workspace backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace backend",
+    "test": "npm run test --workspace backend",
+    "smoke": "bash scripts/smoke.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

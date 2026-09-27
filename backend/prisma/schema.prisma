@@ -1,0 +1,328 @@
+// ═══════════════════════════════════════════════════════════════
+// VORTEX — Prisma schema (PostgreSQL)
+// 15 models covering users/roles, catalogue, analyses, AI results,
+// expert reviews, guidance, notifications, tokens, activity, settings
+// ═══════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+
+enum Role {
+  FARMER
+  EXPERT
+  ADMIN
+}
+
+enum AnalysisStatus {
+  PROCESSING
+  AI_COMPLETED
+  EXPERT_REVIEW_PENDING
+  EXPERT_REVIEWED
+  FAILED
+}
+
+enum Severity {
+  NONE
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum ReviewStatus {
+  PENDING
+  CLAIMED
+  COMPLETED
+}
+
+enum ReviewDecision {
+  APPROVE_AI
+  CORRECTED
+}
+
+enum PathogenType {
+  FUNGAL
+  BACTERIAL
+  VIRAL
+  NUTRITIONAL
+  PEST
+  PHYSIOLOGICAL
+  HEALTHY
+  UNKNOWN
+}
+
+enum GuidanceSource {
+  AI
+  EXPERT
+}
+
+enum NotificationType {
+  ANALYSIS_COMPLETE
+  ANALYSIS_FAILED
+  EXPERT_REVIEW_NEEDED
+  EXPERT_REVIEW_ASSIGNED
+  EXPERT_REVIEW_COMPLETED
+  SYSTEM
+}
+
+// ─────────────────────── Identity & Roles ─────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(FARMER)
+  fullName     String
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  farmerProfile   FarmerProfile?
+  expertProfile   ExpertProfile?
+  images          UploadedImage[]
+  analyses        CropAnalysis[]
+  reviewsGiven    ExpertReview[]
+  notifications   Notification[]
+  refreshTokens   RefreshToken[]
+  activity        ActivityLog[]
+  settingsUpdated SystemSetting[]  @relation("SettingUpdater")
+}
+
+model FarmerProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  village           String?
+  district          String?
+  state             String?
+  farmSizeAcres     Float?
+  preferredLanguage String   @default("en")
+  bio               String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ExpertProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization  String
+  qualification   String?
+  licenseNumber   String?
+  yearsExperience Int?
+  bio             String?
+  rating          Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─────────────────────────── Catalogue ────────────────────────
+
+model CropType {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  scientificName String?
+  family         String?
+  description    String?
+  emoji          String?
+  imageUrl       String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  diseases Disease[]
+  analyses CropAnalysis[]
+}
+
+model Disease {
+  id                String       @id @default(cuid())
+  cropTypeId        String
+  cropType          CropType     @relation(fields: [cropTypeId], references: [id], onDelete: Cascade)
+  name              String
+  pathogenType      PathogenType @default(UNKNOWN)
+  description       String
+  symptoms          String
+  visibleSigns      String?
+  defaultSeverity   Severity     @default(MODERATE)
+  treatmentSummary  String
+  preventiveSummary String
+  isCommon          Boolean      @default(false)
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  aiResults    AIResult[]
+  expertFinals ExpertReview[]
+
+  @@unique([cropTypeId, name])
+  @@index([cropTypeId])
+}
+
+// ─────────────────── Analyses & AI pipeline ───────────────────
+
+model UploadedImage {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storageKey   String   @unique
+  thumbKey     String?
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  sha256       String
+  createdAt    DateTime @default(now())
+
+  analyses CropAnalysis[]
+}
+
+model CropAnalysis {
+  id            String         @id @default(cuid())
+  farmerId      String
+  farmer        User           @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  cropTypeId    String
+  cropType      CropType       @relation(fields: [cropTypeId], references: [id])
+  imageId       String
+  image         UploadedImage  @relation(fields: [imageId], references: [id])
+  status        AnalysisStatus @default(PROCESSING)
+  symptoms      String?
+  locationText  String?
+  latitude      Float?
+  longitude     Float?
+  notes         String?
+  failureReason String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  aiResult      AIResult?
+  expertReview  ExpertReview?
+  guidances     TreatmentGuidance[]
+  notifications Notification[]
+
+  @@index([farmerId, createdAt])
+  @@index([status])
+}
+
+model AIResult {
+  id                 String       @id @default(cuid())
+  analysisId         String       @unique
+  analysis           CropAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  provider           String
+  isMock             Boolean      @default(false)
+  predictedDiseaseId String?
+  predictedDisease   Disease?     @relation(fields: [predictedDiseaseId], references: [id])
+  predictedLabel     String
+  confidence         Float
+  severity           Severity     @default(MODERATE)
+  healthy            Boolean      @default(false)
+  indicators         Json?
+  reasoning          String?
+  needsExpertReview  Boolean      @default(false)
+  processingTimeMs   Int?
+  modelVersion       String?
+  rawResponse        String?
+  createdAt          DateTime     @default(now())
+}
+
+model ExpertReview {
+  id                String         @id @default(cuid())
+  analysisId        String         @unique
+  analysis          CropAnalysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  expertId          String?
+  expert            User?          @relation(fields: [expertId], references: [id])
+  status            ReviewStatus   @default(PENDING)
+  decision          ReviewDecision?
+  finalDiseaseId    String?
+  finalDisease      Disease?       @relation(fields: [finalDiseaseId], references: [id])
+  finalSeverity     Severity?
+  confidenceNote    String?
+  treatmentGuidance String?
+  preventiveAdvice  String?
+  comments          String?
+  requestedByFarmer Boolean        @default(false)
+  claimedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([status])
+  @@index([expertId])
+}
+
+model TreatmentGuidance {
+  id         String         @id @default(cuid())
+  analysisId String
+  analysis   CropAnalysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  source     GuidanceSource
+  title      String?
+  steps      Json
+  createdAt  DateTime       @default(now())
+
+  @@index([analysisId])
+}
+
+// ─────────────────── Platform infrastructure ──────────────────
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  message    String
+  analysisId String?
+  analysis   CropAnalysis?    @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, read])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  userAgent String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String?
+  entityId   String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedById String?
+  updatedBy   User?    @relation("SettingUpdater", fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
